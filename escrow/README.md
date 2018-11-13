@@ -60,6 +60,7 @@ Contracts:
 * Escrow - main smart contract, where logic are placed.
 * EscrowRepository provides convenient reading of payment state.
 * EscrowConfig - contract for setting configuration.
+* PaymentHolder - contract to hold deposited values in ETH and ERC-20. Moving implementation of keeping values from operation logic is made by migration and security reasons.
 * EternalStorage - base contract for keeping state. [Read this article for more information](https://medium.com/rocket-pool/upgradable-solidity-contract-design-54789205276d).
 * PaymentLib - payment state read/write adapter for EternalStorage.
 * EscrowConfigLib - configuration settings read/write adapter for EternalStorage.
