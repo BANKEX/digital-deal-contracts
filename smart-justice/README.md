@@ -61,7 +61,10 @@ All time periods are defined in the BoardConfig and contract can be changed by i
 All times are saved for each case individually on opening, thus changing global setting doesn't change particular case timing.
 
 #### Case resolution
-Case resolution or verdict is defined as boolean _won_ value. 
+Case resolution or verdict is defined as boolean _won_ value:
+* true - applicant won
+* false - respondent won
+
 Smart contract counts revealed votes for applicant (=votesForApplicant ) and for respondent (=votesForRespondent) and makes decision:
 ```
 if (votesForApplicant + votesForRespondent < minNumberOfVotes) {
@@ -77,6 +80,7 @@ if (votesForApplicant + votesForRespondent < minNumberOfVotes) {
 
 ### Voting
 Voting process is based on [commit-reveal pattern](https://karl.tech/learning-solidity-part-2-voting/) to hide actual referee decision due to the end of voting period.
+
 ![voting](./docs/sb-voting.png)
 
 Referee is an account who has _votes_. _Vote_ is a right to make decision on particular case and defined as simple number value in the contract. Any user can acquire votes for BKX tokens using method _applyForReferee_. 
