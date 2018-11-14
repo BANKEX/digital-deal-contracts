@@ -54,7 +54,7 @@ Escrow contract methods are used to change state of particular payment if it exi
 * address[3] addresses: {depositor, beneficiary, token}
 * bytes32 deal
 * uint256 amount
-* ...another
+* ...other
 
 The first three parameters are used to define payment. As these values are not changed after payment creation they can be kept on the client side to optimize gas usage.
 
