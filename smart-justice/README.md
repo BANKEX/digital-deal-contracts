@@ -56,7 +56,7 @@ Contract defined values:
 * revealing time = voting time + voting period (time to revealing)
 * close time = revealing time + revealing period (time to close)
 
-All time periods are defined in the BoardConfig and contract can be changed by its owner (admin).
+All time periods are defined in the BoardConfig and can be changed by its owner (admin).
 
 All times are saved for each case individually on opening, thus changing global setting doesn't change particular case timing.
 
@@ -79,14 +79,13 @@ if (votesForApplicant + votesForRespondent < minNumberOfVotes) {
 ```
 
 ### Voting
-Voting process is based on [commit-reveal pattern](https://karl.tech/learning-solidity-part-2-voting/) to hide actual referee decision due to the end of voting period.
+Voting process is based on [commit-reveal pattern](https://karl.tech/learning-solidity-part-2-voting/) to hide actual referee decision until the end of voting period.
 
 ![voting](./docs/sb-voting.png)
 
 Referee is an account who has _votes_. _Vote_ is a right to make decision on particular case and defined as simple number value in the contract. Any user can acquire votes for BKX tokens using method _applyForReferee_. 
 
 Referee can be assigned by contract to any case and during voting time make a decision (_commitVote_). On the revealing phase referee must reveal his own vote (_revealVote_) to make it available for contract to count votes for both case sides.
-
 
 ## Contracts architecture
 ![contract architecture](./docs/sb-contracts-architecture.png)
