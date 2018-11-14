@@ -14,6 +14,11 @@ There are several terms are used in smart contracts:
 * Amount – value in ETH or any ERC-20 token.
 
 ## How does it work?
+Main use case:
+1. Depositor creates payment.
+2. Depositor deposits payment amount and beneficiary accepts payment.
+3. Depositor releases payment.
+4. Beneficiary confirms withdraw.
 
 ### Payment
 Central operation model is payment defined as keccak256 hash of:
@@ -29,20 +34,19 @@ All operations are based on payment state machine.
 ![Payment state machine](./docs/payment-state-machine.png)
 
 Payment states:
-* CREATED - depositor creates payment, but doesn't deposit deal amount yet. 
-* CONFIRMED - depositor deposits full payment amount and beneficiary signed payment. Both actions are required to reach this state.
-* CANCELED - if depositor or beneficiary cancels payment. If depositor had deposited amount before, it will be returned.
-* RELEASED - depositor releases payment amount to beneficiary. Also, this state can be reached by accepting [offer](#offering) by one of the payment party.
+* CREATED - depositor created payment, but didn't deposit deal amount yet. 
+* CONFIRMED - depositor deposited full payment amount and beneficiary signed payment. Both actions are required to reach this state.
+* CANCELED - if depositor or beneficiary canceled payment. If depositor had deposited amount before, it has been refunded.
+* RELEASED - depositor released payment amount to beneficiary. Also, this state can be reached by accepting [offer](#offering) by one of the payment party.
 * CLOSED - this state can be reached in the following cases:
-    * Beneficiary withdraws full amount after depositor released payment.
-    * Depositor or beneficiary accepts another participant offer and both withdraw their parts.
-    * Depositor or beneficiary submits claim to Smart Justice and then can withdraw according case verdict. See more in [Smart Justice Integration](#smart-justice-integration).
+    * Beneficiary withdrew full amount after depositor released payment.
+    * Depositor or beneficiary accepted another participant offer and both withdrew their parts.
+    * Depositor or beneficiary submitted claim to Smart Justice and then withdrew according case verdict. See more in [Smart Justice Integration](#smart-justice-integration).
 
 ### Offering
 
-Offer is an amount proposal from one payment party to another to close payment. The main purpose of this case is to resolve situations when not all deal conditions were satisfied and there is need partial release to beneficiary and refund to depositor.
+Offer is an amount proposal from one payment party to another to close payment. The main purpose of this use case is to resolve situations when not all deal conditions were satisfied and there is need partial release to beneficiary and refund to depositor.
 Offer defines amount to pay to offer sender, and the rest (amount-offer) to another party.
-
 
 ### Contract method invocation 
 
