@@ -97,8 +97,3 @@ Contracts:
 * EternalStorage - base contract for keeping state. [Read this article for more information](https://medium.com/rocket-pool/upgradable-solidity-contract-design-54789205276d).
 * Libs - cases, referees, referee votes states read/write adapter for EternalStorage.
 * BoardConfigLib - configuration settings read/write adapter for EternalStorage.
-
-
-
-
-
