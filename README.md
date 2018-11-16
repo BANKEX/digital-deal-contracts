@@ -5,9 +5,9 @@ Digital Deal is a system of integrated Ethereum smart contract services that pro
 
 Digital deal consists of the following projects:
 
-* [Trust Service](./trust-service/README.md)
-* [Escrow](./escrow/README.md)
-* [Smart Justice](./smart-justice/README.md)
+* [Trust Service](https://github.com/BANKEX/digital-deal-contracts/wiki/Trust-Service)
+* [Escrow](https://github.com/BANKEX/digital-deal-contracts/wiki/Escrow)
+* [Smart Justice](https://github.com/BANKEX/digital-deal-contracts/wiki/Smart-Justice)
 
 ## How does it work?
 
