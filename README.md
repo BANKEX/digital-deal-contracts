@@ -179,7 +179,7 @@ All operations are based on case state machine.
 ##### Case states:
 * OPENED - applicant opened case.
 * VOTING - time to voting is passed or respondent submitted response to the case.
-* REVEALING - voting time is passed and all referees must reveal their votes before close time. See [voting](#voting).(https://karl.tech/learning-solidity-part-2-voting/).
+* REVEALING - voting time is passed and all referees must reveal their votes before close time. See [voting](#voting).
 * CLOSED - verdict was invoked. See [case resolution](#case_resolution).
 * CANCELED - verdict was invoked, but amount of votes wasn't enough to make decision (threshold value is defined in configuration) or number of votes for applicant is equal as for respondent.
 
