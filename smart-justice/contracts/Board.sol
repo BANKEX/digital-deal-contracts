@@ -60,6 +60,7 @@ contract Board is IBoard {
         bkxToken = BkxToken(0x45245bc59219eeaAF6cD3f382e078A461FF9De7B);
         admin = 0xE0b6C095D722961C2C11E55b97fCd0C8bd7a1cD2;
         paymentHolder = _paymentHolder;
+        refereePaymentHolder = msg.sender;
     }
 
     function withdrawEth(uint value) external onlyOwner {
@@ -90,13 +91,19 @@ contract Board is IBoard {
         paymentHolder = _paymentHolder;
     }
 
+    function setRefereePaymentHolder(address _refereePaymentHolder) external onlyOwner {
+        refereePaymentHolder = _refereePaymentHolder;
+    }
+
     function setAdmin(address newAdmin) external onlyOwner {
         admin = newAdmin;
     }
 
-    function applyForReferee() external payable {
-        uint refereeFee = msg.value == 0 ? config.getRefereeFee() : config.getRefereeFeeEth();
-        withdrawPayment(refereeFee);
+    function applyForReferee() external {
+        uint refereeFee = config.getRefereeFee();
+        require(bkxToken.allowance(msg.sender, address(this)) >= refereeFee);
+        require(bkxToken.balanceOf(msg.sender) >= refereeFee);
+        require(bkxToken.transferFrom(msg.sender, refereePaymentHolder, refereeFee));
         addVotes(msg.sender);
     }
 

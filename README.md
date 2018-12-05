@@ -12,7 +12,7 @@ Digital deal consists of the following projects:
 ## Etherscan links
 * [Trust Service ](https://etherscan.io/address/0xa35ac2445eb99ef4e91c696ea09b448894a76036)
 * [Escrow](https://etherscan.io/address/0x2967ddff5dd66f807f2af1cb0e89f5ea22ce972c)
-* [Smart Justice ](https://etherscan.io/address/0x9166b15cba71be78da4127369e564b2d1f1b3008)
+* [Smart Justice ](https://etherscan.io/address/0xa2a5df962c0a9276b83fffb269c6270339aeb627)
 
 ## How does it work?
 
