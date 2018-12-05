@@ -3,12 +3,14 @@ pragma solidity ^0.4.22;
 import "./interface/IEscrow.sol";
 import "./interface/ICourt.sol";
 import "./lib/PaymentLib.sol";
+import "./lib/FeeLib.sol";
 import "./EscrowConfig.sol";
 import "./PaymentHolder.sol";
 
 
 contract Escrow is IEscrow {
     using PaymentLib for address;
+    using FeeLib for address;
     using EscrowConfigLib for address;
 
     constructor(address storageAddress, address _paymentHolder, address _courtAddress) public {
@@ -31,24 +33,42 @@ contract Escrow is IEscrow {
         courtAddress = _courtAddress;
     }
 
+    function getTotalFee(address token)
+    public view returns(uint256) {
+        return lib.getTotalFee(token);
+    }
+
+    function withdrawFee(address to, address token) 
+    external onlyOwner {
+        uint256 totalFee = lib.getTotalFee(token);
+        require(totalFee >= 0, "Can not withdraw 0 total fee");
+        if (token == address(0)) {
+            require(PaymentHolder(paymentHolder).withdrawEth(to, totalFee), "Error during withdraw ETH");
+        } else {
+            require(PaymentHolder(paymentHolder).withdrawToken(to, totalFee, token), "Error during withdraw Token");
+        }
+        lib.setTotalFee(0 ,token);
+    }
+
     /*----------------------PUBLIC USER METHODS----------------------*/
 
     /** @dev Depositor creates escrow payment. Set token as 0x0 in case of ETH amount.
       * @param addresses [depositor, beneficiary, token]
+      * @param depositorPayFee If true, depositor have to send (amount + (amount * fee) / 100).
       */
-    function createPayment(address[3] addresses, bytes32 deal, uint256 amount)
+    function createPayment(address[3] addresses, bytes32 deal, uint256 amount, bool depositorPayFee)
     external {
         onlyParties(addresses);
-        require(addresses[0] != address(0));
-        require(addresses[1] != address(0));
+        require(addresses[0] != address(0), "Depositor can not be 0x0 address");
+        require(addresses[1] != address(0), "Beneficiary can not be 0x0 address");
         require(addresses[0] != addresses[1], "Depositor and beneficiary can not be the same");
         require(deal != 0x0, "deal can not be 0x0");
         require(amount != 0, "amount can not be 0");
         bytes32 paymentId = getPaymentId(addresses, deal, amount);
         checkStatus(paymentId, PaymentStatus.NONE);
         uint8 fee = lib.getPaymentFee();
-        lib.createPayment(paymentId, fee, uint8(PaymentStatus.CREATED));
-        emit PaymentCreated(paymentId, addresses[0], addresses[1], addresses[2], deal, amount, fee);
+        lib.createPayment(paymentId, fee, uint8(PaymentStatus.CREATED), depositorPayFee);
+        emit PaymentCreated(paymentId, addresses[0], addresses[1], addresses[2], deal, amount, fee, depositorPayFee);
     }
 
     /** @dev Beneficiary signs escrow payment as consent for taking part.
@@ -58,6 +78,7 @@ contract Escrow is IEscrow {
     external {
         onlyBeneficiary(addresses);
         bytes32 paymentId = getPaymentId(addresses, deal, amount);
+        require(!lib.isSigned(paymentId), "Payment can be signed only once");
         checkStatus(paymentId, PaymentStatus.CREATED);
         lib.setSigned(paymentId, true);
         bool confirmed = lib.isDeposited(paymentId);
@@ -69,35 +90,34 @@ contract Escrow is IEscrow {
 
     /** @dev Depositor deposits payment amount only after it was signed by beneficiary
       * @param addresses [depositor, beneficiary, token]
-      * @param payFee If true, depositor have to send (amount + (amount * fee) / 100).
       */
-    function deposit(address[3] addresses, bytes32 deal, uint256 amount, bool payFee)
+    function deposit(address[3] addresses, bytes32 deal, uint256 amount)
     external payable {
         onlyDepositor(addresses);
         bytes32 paymentId = getPaymentId(addresses, deal, amount);
         PaymentStatus status = getPaymentStatus(paymentId);
-        require(status == PaymentStatus.CREATED || status == PaymentStatus.SIGNED);
+        require(!lib.isDeposited(paymentId), "Payment can be deposited only once");
+        require(status == PaymentStatus.CREATED || status == PaymentStatus.SIGNED, "Invalid current payment status");
         uint256 depositAmount = amount;
-        if (payFee) {
+        if (lib.isFeePayed(paymentId)) {
             depositAmount = amount + calcFee(amount, lib.getPaymentFee(paymentId));
-            lib.setFeePayed(paymentId, true);
         }
         address token = getToken(addresses);
         if (token == address(0)) {
             require(msg.value == depositAmount, "ETH amount must be equal amount");
-            require(PaymentHolder(paymentHolder).depositEth.value(msg.value)());
+            require(PaymentHolder(paymentHolder).depositEth.value(msg.value)(), "Not enough eth");
         } else {
             require(msg.value == 0, "ETH amount must be 0 for token transfer");
-            require(Token(token).allowance(msg.sender, address(this)) >= depositAmount);
-            require(Token(token).balanceOf(msg.sender) >= depositAmount);
-            require(Token(token).transferFrom(msg.sender, paymentHolder, depositAmount));
+            require(Token(token).allowance(msg.sender, address(this)) >= depositAmount, "Not enough token allowance");
+            require(Token(token).balanceOf(msg.sender) >= depositAmount, "No enough tokens");
+            require(Token(token).transferFrom(msg.sender, paymentHolder, depositAmount), "Error during transafer tokens");
         }
         lib.setDeposited(paymentId, true);
         bool confirmed = lib.isSigned(paymentId);
         if (confirmed) {
             setPaymentStatus(paymentId, PaymentStatus.CONFIRMED);
         }
-        emit PaymentDeposited(paymentId, depositAmount, payFee, confirmed);
+        emit PaymentDeposited(paymentId, depositAmount, confirmed);
     }
 
     /** @dev Depositor or Beneficiary requests payment cancellation after payment was signed by beneficiary.
@@ -224,7 +244,7 @@ contract Escrow is IEscrow {
         );
         bytes32 paymentId = getPaymentId(addresses, byts[0], uints[0]);
         PaymentStatus paymentStatus = getPaymentStatus(paymentId);
-        require(paymentStatus == PaymentStatus.CONFIRMED || paymentStatus == PaymentStatus.RELEASED_BY_DISPUTE);
+        require(paymentStatus == PaymentStatus.CONFIRMED || paymentStatus == PaymentStatus.RELEASED_BY_DISPUTE, "Invalid current payment status");
         require(!lib.isWithdrawn(paymentId, msg.sender), "User can not withdraw twice.");
         bytes32 dispute = ICourt(courtAddress).getCaseId(
             disputeParties[0] /*applicant*/, disputeParties[1]/*respondent*/,
@@ -319,14 +339,17 @@ contract Escrow is IEscrow {
     }
 
     function transferWithFee(address to, uint256 amount, address token, bytes32 paymentId)
-    private returns (uint256 amountMinusFee) {
+    private returns (uint256 transferAmount) {
         require(amount != 0, "There is sense to invoke this method if withdraw amount is 0.");
-        uint8 fee = 0;
+        uint256 feeAmount = calcFee(amount, lib.getPaymentFee(paymentId));
+        transferAmount = amount;
         if (!lib.isFeePayed(paymentId)) {
-            fee = lib.getPaymentFee(paymentId);
+            transferAmount = amount - feeAmount;
         }
-        amountMinusFee = amount - calcFee(amount, fee);
-        transfer(to, amountMinusFee, token);
+        transfer(to, transferAmount, token);
+        if (feeAmount > 0) {
+            lib.addFee(feeAmount, token);
+        }
     }   
 
     function transfer(address to, uint256 amount, address token)
@@ -335,9 +358,9 @@ contract Escrow is IEscrow {
             return;
         }
         if (token == address(0)) {
-            require(PaymentHolder(paymentHolder).withdrawEth(to, amount));
+            require(PaymentHolder(paymentHolder).withdrawEth(to, amount), "Error during withdraw ETH");
         } else {
-            require(PaymentHolder(paymentHolder).withdrawToken(to, amount, token));
+            require(PaymentHolder(paymentHolder).withdrawToken(to, amount, token), "Error during withdraw Token");
         }
     }
 
@@ -345,4 +368,5 @@ contract Escrow is IEscrow {
     private pure returns (uint256) {
         return ((amount * fee) / 100);
     }
+
 }
